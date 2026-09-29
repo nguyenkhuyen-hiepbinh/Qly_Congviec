@@ -168,9 +168,9 @@ a{color:var(--brand-2)}
 .banner b{font-weight:700}
 .banner .yt{display:inline-block;background:var(--surface);border-radius:6px;padding:1px 7px;margin:3px 4px 0 0;font-size:11.5px;font-weight:600}
 .table-card{overflow:hidden}
-.table-scroll{overflow-x:auto}
+.table-scroll{overflow:auto;max-height:calc(100vh - 96px)}
 table{width:100%;border-collapse:collapse}
-thead th{background:var(--surface-2);text-align:left;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:11px 12px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+thead th{z-index:3;box-shadow:inset 0 -1px 0 var(--border);background:var(--surface-2);text-align:left;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:11px 12px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
 thead th.sortable{cursor:pointer;user-select:none}
 thead th.sortable:hover{color:var(--text)}
 tbody td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13.5px}
@@ -748,6 +748,7 @@ function filtered(tab){
     if(f.to&&f.to!=='ALL'&&(r.to||'').trim()!==f.to) return false;
     return !q||norm(SECTIONS[tab].search.map(k=>r[k]).join(' ')).includes(q);
   });
+  if(f.sort==='default') rows=rows.reverse();   // mục nhập sau nằm trên
   if(f.sort==='asc'||f.sort==='desc'){
     const big=f.sort==='asc'?8.64e15:-8.64e15;
     rows=rows.map(r=>({r,d:(parseDate(r.tg)||{getTime:()=>big}).getTime()}))
@@ -776,7 +777,7 @@ function renderList(tab){
     <div class="search">${I.search}<input type="search" placeholder="Tìm ${S.noun}… (không cần gõ dấu)" value="${esc(f.q)}" data-search="${tab}"></div>
     ${tab==='cv'?`<select class="sel" data-fsel="status"><option value="ALL">Mọi tiến độ</option>${STATUSES.map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join('')}<option value="LATE" ${f.status==='LATE'?'selected':''}>Trễ hạn (tự nhận diện)</option></select>`:''}
     ${tab!=='cv'&&tos.length?`<select class="sel" data-fsel="to"><option value="ALL">Mọi tổ chuyên môn</option>${tos.map(t=>`<option ${f.to===t?'selected':''}>${esc(t)}</option>`).join('')}</select>`:''}
-    <select class="sel" data-fsel="sort"><option value="default">Thứ tự nhập</option><option value="asc" ${f.sort==='asc'?'selected':''}>Ngày: cũ → mới</option><option value="desc" ${f.sort==='desc'?'selected':''}>Ngày: mới → cũ</option></select>
+    <select class="sel" data-fsel="sort"><option value="default">Mới nhập lên đầu</option><option value="old" ${f.sort==='old'?'selected':''}>Cũ nhập lên đầu</option><option value="asc" ${f.sort==='asc'?'selected':''}>Ngày: cũ → mới</option><option value="desc" ${f.sort==='desc'?'selected':''}>Ngày: mới → cũ</option></select>
     ${historyMode?'':`<button class="btn btn-primary btn-add" data-act="add">${I.plus}Thêm ${S.noun}</button>`}
   </div>`;
   const empty=`<div class="empty">${I.inbox}<h4>${all.length?'Không tìm thấy kết quả phù hợp':'Chưa có dữ liệu'}</h4><p>${all.length?'Thử từ khóa khác hoặc bỏ bộ lọc.':historyMode?'':'Bấm “Thêm '+S.noun+'” để bắt đầu.'}</p></div>`;
