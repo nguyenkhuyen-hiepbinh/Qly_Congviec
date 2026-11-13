@@ -348,6 +348,33 @@ td.actions{width:44px;text-align:right}
 }
 @media (max-width:420px){ .stats{grid-template-columns:repeat(2,1fr)} }
 @media print{ .sidebar,.topbar,.bnav,.fab,.toolbar,.actions{display:none!important} .main{margin:0} }
+/* ---- Nhập từ PDF ---- */
+.modal.xl{width:1040px}
+.pdf-drop{border:2px dashed var(--border-strong);border-radius:14px;padding:26px 16px;text-align:center;color:var(--text-2);background:var(--surface-2);cursor:pointer;transition:border-color .15s,background .15s}
+.pdf-drop:hover,.pdf-drop.over{border-color:var(--brand);background:var(--accent-soft)}
+.pdf-drop b{display:block;font-size:15px;color:var(--text);margin-bottom:4px}
+.pdf-prog{margin-top:12px;font-size:13px;color:var(--text-2)}
+.pdf-bar{height:6px;border-radius:6px;background:var(--gray-soft);overflow:hidden;margin-top:6px}
+.pdf-bar>i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s}
+.pdf-meta{font-size:12.5px;color:var(--text-2);margin:12px 0 8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pdf-meta .pill{background:var(--gray-soft);border-radius:8px;padding:2px 9px;font-weight:600}
+.pdf-meta .pill.warn{background:var(--amber-soft);color:var(--amber)}
+.pdf-tbl{width:100%;min-width:900px;table-layout:fixed;border-collapse:collapse}
+.pdf-tbl th{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:8px 6px;background:var(--surface-2);position:sticky;top:0;z-index:2}
+.pdf-tbl td{padding:5px 4px;vertical-align:top;border-top:1px solid var(--border)}
+.pdf-tbl textarea,.pdf-tbl input[type=text]{width:100%;border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--surface);font-size:13px;outline:none}
+.pdf-tbl textarea{min-height:58px;resize:vertical}
+.pdf-tbl textarea:focus,.pdf-tbl input[type=text]:focus{border-color:var(--brand)}
+.pdf-tbl tr.off textarea,.pdf-tbl tr.off input[type=text]{opacity:.5}
+.pdf-tbl td.ck{width:34px;text-align:center;padding-top:12px}
+.pdf-tbl td.ck input{width:17px;height:17px;accent-color:var(--brand)}
+.pdf-tbl .tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 7px;margin-top:3px}
+.pdf-tbl .tag.dup{background:var(--red-soft);color:var(--red)}
+.pdf-tbl .tag.weak{background:var(--amber-soft);color:var(--amber)}
+.pdf-tbl .tag.pg{background:var(--gray-soft);color:var(--muted)}
+.pdf-scroll{max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:12px}
+.pdf-raw{margin-top:10px;font-size:12px}
+.pdf-raw pre{white-space:pre-wrap;max-height:180px;overflow:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:6px}
 </style>
 </head>
 <body>
@@ -394,6 +421,18 @@ td.actions{width:44px;text-align:right}
   <div class="modal-h"><h3 id="formTitle">Thêm mới</h3><button class="icon-btn" data-close aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
   <div class="modal-b"><form class="form" id="recForm" autocomplete="off"></form></div>
   <div class="modal-f"><button class="btn btn-danger-ghost" id="formDel" type="button">Xóa</button><div class="spacer"></div><button class="btn btn-ghost" data-close type="button">Hủy</button><button class="btn btn-primary" id="formSave" type="button">Lưu</button></div>
+</div></div>
+
+<!-- Modal: nhập công việc từ PDF -->
+<div class="overlay" id="ov-pdf"><div class="modal xl">
+  <div class="modal-h"><h3>Nhập công việc từ file PDF</h3><button class="icon-btn" data-close aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="modal-b">
+    <label class="pdf-drop" id="pdfDrop" for="pdfFile"><b>Bấm để chọn file PDF hoặc kéo thả vào đây</b>Công văn, kế hoạch, lịch công tác… Xử lý ngay trên máy bạn, file không bị tải lên đâu cả. Trang nào là ảnh scan sẽ tự nhận dạng chữ (chậm hơn).</label>
+    <input type="file" id="pdfFile" accept="application/pdf,.pdf" class="sr">
+    <div class="pdf-prog" id="pdfProg" style="display:none"><span id="pdfProgTxt"></span><div class="pdf-bar"><i id="pdfBar"></i></div></div>
+    <div id="pdfResult"></div>
+  </div>
+  <div class="modal-f"><span id="pdfCount" style="font-size:13px;color:var(--text-2)"></span><div class="spacer"></div><button class="btn btn-ghost" data-close type="button">Hủy</button><button class="btn btn-primary" id="pdfAdd" type="button" disabled>Thêm vào danh sách</button></div>
 </div></div>
 
 <!-- Modal: admin menu -->
@@ -1053,6 +1092,7 @@ function renderList(tab){
     ${tab!=='cv'&&tos.length?`<select class="sel" data-fsel="to"><option value="ALL">Mọi tổ chuyên môn</option>${tos.map(t=>`<option ${f.to===t?'selected':''}>${esc(t)}</option>`).join('')}</select>`:''}
     <select class="sel" data-fsel="sort"><option value="default">Mới nhập lên đầu</option><option value="old" ${f.sort==='old'?'selected':''}>Cũ nhập lên đầu</option>${S.dateKey?`<option value="asc" ${f.sort==='asc'?'selected':''}>Ngày: cũ → mới</option><option value="desc" ${f.sort==='desc'?'selected':''}>Ngày: mới → cũ</option>`:''}</select>
     ${S.custom?`<button class="btn btn-ghost" data-menu-edit="${S.menuId}" title="Sửa tên, cột của mục này">${GEAR}Sửa cấu trúc</button>`:''}
+    ${tab==='cv'&&!historyMode?`<button class="btn btn-ghost" data-act="pdf" title="Đọc file PDF (công văn, kế hoạch…) và tự điền thông tin công việc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3"/></svg>Nhập từ PDF</button>`:''}
     ${historyMode?'':`<button class="btn btn-primary btn-add" data-act="add">${I.plus}Thêm ${S.noun}</button>`}
   </div>`;
   const empty=`<div class="empty">${I.inbox}<h4>${all.length?'Không tìm thấy kết quả phù hợp':'Chưa có dữ liệu'}</h4><p>${all.length?'Thử từ khóa khác hoặc bỏ bộ lọc.':historyMode?'':'Bấm “Thêm '+S.noun+'” để bắt đầu.'}</p></div>`;
@@ -1261,6 +1301,7 @@ document.addEventListener('click',async e=>{
   else if(act==='more') openOv('more');
   else if(act==='history'){ closeOv('menu'); historyMode=!historyMode; renderAll(); toast(historyMode?'Đang xem tổng hợp '+DB.years.length+' năm học':'Trở về năm học '+viewYear); }
   else if(act==='add') openForm(page==='dash'?'cv':page);
+  else if(act==='pdf') openPdfImport();
   else if(act==='newyear') openNewYear();
   else if(act==='delyear') deleteYear();
   else if(act==='export') exportJSON();
@@ -1290,6 +1331,468 @@ $('#formDel').onclick=()=>{ const {tab,id,year}=editing; delRow(tab,id,year); };
 $('#nyCreate').onclick=createYear;
 $('#meSave').onclick=saveMenu;
 $('#meDel').onclick=deleteMenu;
+
+/* ---------------- Bộ tách công việc từ văn bản PDF ---------------- */
+/* Bộ tách công việc từ văn bản PDF đã đọc (không phụ thuộc giao diện).
+   Đầu vào: pages = [{page, lines:[{y,h,segs:[{x,x2,text}]}]}] (tọa độ chuẩn hóa 0..1000, y từ trên xuống)
+   Đầu ra: {tasks:[{nd,tg,ng,dd,gc,page,auto}], meta:{title,docNo,issueDate}} */
+const PdfParse = (() => {
+  const NFC = s => String(s == null ? '' : s).normalize('NFC');
+  const clean = s => NFC(s).replace(/[ \t​]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  const fold = s => clean(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd');
+  const pad = n => String(n).padStart(2, '0');
+  const trimP = s => clean(s).replace(/^[\s:;,.\-–—]+|[\s:;,\-–—]+$/g, '').replace(/\.$/, '').trim();
+
+  function guessYear(mo, schoolYear) {
+    const p = String(schoolYear || '').match(/(\d{4})\D+(\d{4})/);
+    if (!p) return new Date().getFullYear();
+    return mo >= 8 ? +p[1] : +p[2];
+  }
+  const validDM = (d, m) => d >= 1 && d <= 31 && m >= 1 && m <= 12;
+
+  // Tìm mọi ngày trong chuỗi -> [{i, end, d, m, y}]
+  function findDates(s, sy) {
+    const out = [];
+    let m;
+    const r1 = /ngày\s*(\d{1,2})\s*(?:tháng|\/)\s*(\d{1,2})(?:\s*(?:năm|\/)\s*(\d{4}))?/giu;
+    while ((m = r1.exec(s))) { const d = +m[1], mo = +m[2]; if (validDM(d, mo)) out.push({ i: m.index, end: m.index + m[0].length, d, m: mo, y: m[3] ? +m[3] : guessYear(mo, sy) }); }
+    const r2 = /(^|[^\d\/.\-\p{L}])(\d{1,2})\s?([\/.\-])\s?(\d{1,2})(?:\s?\3\s?(\d{4}|\d{2}))?(?![\d\/]|\.\d|\s?[\p{L}]{0,1}\/)/gu;
+    while ((m = r2.exec(s))) {
+      const d = +m[2], mo = +m[4], sep = m[3]; let y = m[5];
+      const i = m.index + m[1].length;
+      if (!validDM(d, mo)) continue;
+      if (!y && sep !== '/') continue;          // "2.1" là số mục, không phải ngày
+      if (out.some(o => i >= o.i && i < o.end)) continue;
+      y = y ? (+y < 100 ? +y + 2000 : +y) : guessYear(mo, sy);
+      out.push({ i, end: m.index + m[0].length, d, m: mo, y });
+    }
+    return out.sort((a, b) => a.i - b.i);
+  }
+  const fmt = o => pad(o.d) + '/' + pad(o.m) + '/' + o.y;
+  // Thay các ngày trong chuỗi bằng dạng dd/mm/yyyy đầy đủ
+  function normDates(s, sy) {
+    const ds = findDates(s, sy); let out = '', p = 0;
+    ds.forEach(o => { out += s.slice(p, o.i) + fmt(o); p = o.end; });
+    return clean(out + s.slice(p));
+  }
+  const WD_RE = /(thứ\s*(?:hai|ba|tư|năm|sáu|bảy|[2-7])|chủ\s*nhật)(?![\p{L}])/iu;
+  const TIME_RE = /(^|[^\p{L}\d])((?:từ\s*)?\d{1,2}\s?(?:h|giờ|g|:)\s?\d{0,2}(?:\s?phút)?(?:\s*(?:[-–]|đến)\s*\d{1,2}\s?(?:h|giờ|g|:)\s?\d{0,2})?)(?![\p{L}\d])/iu;
+  const SESS_RE = /(^|[^\p{L}])((?:buổi\s*)?(?:sáng|chiều|tối)|tiết\s*\d+(?:\s*[-,]\s*\d+)*)(?![\p{L}])/iu;
+
+  // Tạo chuỗi "Thời gian" từ một đoạn văn bản tự do
+  function timeFrom(s, sy) {
+    const ds = findDates(s, sy);
+    if (!ds.length) return '';
+    const first = ds[0];
+    let res = fmt(first);
+    const nxt = ds[1];
+    if (nxt && /^\s*(?:[-–—]|đến|tới|~)\s*(?:ngày\s*)?$/iu.test(s.slice(first.end, nxt.i))) res += ' - ' + fmt(nxt);
+    const before = s.slice(Math.max(0, first.i - 30), first.i);
+    const wd = before.match(WD_RE);
+    if (wd) res = cap(wd[1].replace(/\s+/g, ' ')) + ', ' + res;
+    const tm = s.match(TIME_RE), ss = s.match(SESS_RE);
+    const pre = [ss && ss[2], tm && tm[2]].filter(Boolean).map(x => clean(x));
+    if (pre.length) res = pre.join(' ') + ', ' + res;
+    return cap(res);
+  }
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+  /* ---- Nhãn "Tên trường:" trong văn bản ---- */
+  const LABELS = [
+    ['tg', 'thời gian|thời hạn|hạn chót|hạn nộp|hạn hoàn thành|ngày thực hiện|thời điểm|ngày tổ chức'],
+    ['ng', 'người thực hiện|người phụ trách|người chịu trách nhiệm|phụ trách|chủ trì|thành phần(?: tham dự| tham gia)?|bộ phận thực hiện|đơn vị thực hiện|người được giao|giao cho|phân công|thực hiện|lực lượng'],
+    ['dd', 'địa điểm|nơi tổ chức|tại'],
+    ['gc', 'ghi chú|lưu ý'],
+    ['nd', 'nội dung(?: công việc)?|công việc|nhiệm vụ']
+  ];
+  const LABEL_RE = new RegExp('(^|[^\\p{L}])(' + LABELS.map(l => l[1]).join('|') + ')\\s*:', 'giu');
+  const labelKey = w => { const f = clean(w).toLowerCase(); for (const [k, re] of LABELS) if (new RegExp('^(?:' + re + ')$', 'iu').test(f)) return k; return null; };
+
+  function extractLabels(s) {
+    const hits = []; let m; LABEL_RE.lastIndex = 0;
+    while ((m = LABEL_RE.exec(s))) hits.push({ i: m.index + m[1].length, vs: m.index + m[0].length, k: labelKey(m[2]) });
+    const res = {}; let rest = hits.length ? s.slice(0, hits[0].i) : s;
+    hits.forEach((h, j) => {
+      const v = trimP(cutSentence(s.slice(h.vs, j + 1 < hits.length ? hits[j + 1].i : s.length)));
+      if (!h.k || !v) return;
+      res[h.k] = res[h.k] ? res[h.k] + '; ' + v : v;
+    });
+    return { res, rest: trimP(rest) };
+  }
+  // cắt ở dấu chấm kết câu (". Chữ hoa"), bỏ qua viết tắt ngắn như "TP." "Q."
+  function cutSentence(v) {
+    const re = /([\p{L}\d]+)\.\s+(?=\p{Lu})/gu; let m;
+    while ((m = re.exec(v))) { if (m[1].length > 3 || /\d/.test(m[1])) return v.slice(0, m.index + m[1].length); }
+    return v;
+  }
+  function inlinePlace(s) {
+    const re = /(^|[\s,(])tại\s+([^;,()\n]{2,70}?)(?=\s*$|\s*[;,()]|\.\s|\.$|\s+(?:vào|lúc|từ|ngày|thứ|do|với|cho|theo|trước|sau|nhằm|để)(?![\p{L}]))/giu;
+    let m;
+    while ((m = re.exec(s))) {
+      const before = s.slice(Math.max(0, m.index - 6), m.index + m[1].length).toLowerCase();
+      if (/hiện\s*$/.test(before)) continue;
+      const v = trimP(m[2]);
+      if (v.length >= 2 && !/^(đây|chỗ|nhà|thời điểm)$/i.test(v)) return cap(v);
+    }
+    return '';
+  }
+  function inlinePerson(s) {
+    let m = s.match(/(?:giao cho|phân công|^|[\s,;(])do\s+([^;,()]{2,60}?)\s+(?:thực hiện|phụ trách|chủ trì|đảm nhận|triển khai|tổ chức|điều hành|hướng dẫn)(?![\p{L}])/iu);
+    if (m) return trimP(m[1]);
+    m = s.match(/(?:giao cho|phân công cho)\s+([^;,.()]{2,60})/iu);
+    if (m) return trimP(m[1]);
+    return '';
+  }
+
+  /* ---- Nhận diện dòng ---- */
+  const BULLET_RE = /^\s*(?:[-–—•●○▪■□◆❖➢➤►✓✔*+]|\(?\d{1,2}[.)](?!\d)|\(?[a-zđ][.)])\s*/iu;
+  const ROMAN_RE = /^\s*[IVX]{1,5}\s*[.)\-–]\s*\S/;
+  const START_DATE_RE = /^\s*(?:(?:thứ\s*(?:hai|ba|tư|năm|sáu|bảy|[2-7])|chủ\s*nhật)(?![\p{L}])[\s,(]*(?:ngày\s*)?\d{1,2}\s*[\/.\-]\s*\d{1,2}|(?:ngày\s*)?\d{1,2}\s*\/\s*\d{1,2}(?:\s*\/\s*\d{2,4})?\s*[):\-–]?)/iu;
+  const NOISE = [
+    /cộng\s*h[òo]à\s*xã\s*h[ộo]i/iu, /độc\s*lập\s*[-–—]?\s*tự\s*do/iu, /^\s*số\s*:/iu, /^\s*kính\s*gửi/iu,
+    /^\s*(?:trang\s*)?\d+\s*(?:\/\s*\d+)?\s*$/iu, /^\s*[-_=.…]{3,}\s*$/, /^\s*\(?đã\s*ký\)?\s*$/iu,
+    /^\s*(?:kt\.?\s*)?(?:phó\s*)?hiệu\s*trưởng\s*$/iu, /^\s*(?:ubnd|ủy ban|uỷ ban|phòng\s*giáo\s*dục|sở\s*giáo\s*dục)/iu
+  ];
+  const STOP_RE = /^\s*nơi\s*nhận\s*:?/iu;
+  const ISSUE_RE = /^[\p{L}\s.]{2,40},\s*ngày\s*\d{1,2}\s*tháng\s*\d{1,2}\s*năm\s*\d{4}/iu;
+  const TITLE_RE = /^\s*(kế\s*hoạch|thông\s*báo|công\s*văn|quyết\s*định|giấy\s*mời|lịch\s*công\s*tác|lịch\s*làm\s*việc|chương\s*trình|báo\s*cáo|tờ\s*trình|hướng\s*dẫn|thư\s*mời)\b/iu;
+  const isUpper = s => { const L = s.replace(/[^\p{L}]/gu, ''); return L.length >= 4 && L === L.toUpperCase(); };
+  const sentence = s => cap(clean(s).toLowerCase());
+  const lineText = ln => clean(ln.segs.map(s => s.text).join(' '));
+
+  /* ---- Bảng ---- */
+  const HEAD = [
+    ['stt', /^(stt|tt|so tt|thu tu)$/],
+    ['gc', /ghi chu/],
+    ['dd', /dia diem|noi to chuc/],
+    ['ng', /nguoi|phu trach|thuc hien|chu tri|bo phan|thanh phan|don vi|luc luong/],
+    ['tg', /thoi gian|thoi han|^ngay|^thu$|^thu\s*\/|ngay thang|^tuan$|buoi/],
+    ['nd', /noi dung|cong viec|nhiem vu|hoat dong/]
+  ];
+  function headKey(t) { const f = fold(t); for (const [k, re] of HEAD) if (re.test(f)) return k; return null; }
+  function detectHeader(ln) {
+    const cols = []; const used = new Set();
+    ln.segs.forEach(s => { const k = headKey(s.text); if (k && !used.has(k)) { used.add(k); cols.push({ k, c: (s.x + s.x2) / 2, x: s.x }); } });
+    if (cols.length >= 3 && used.has('nd')) return cols.sort((a, b) => a.c - b.c);
+    return null;
+  }
+  function colOf(seg, cols) {
+    // cột có vùng chứa điểm bắt đầu của ô (ranh giới = điểm giữa 2 tâm tiêu đề)
+    const sx = seg.x + Math.min(15, (seg.x2 - seg.x) / 2);
+    for (let i = 0; i < cols.length; i++) {
+      const right = i + 1 < cols.length ? (cols[i].c + cols[i + 1].c) / 2 : 1e9;
+      if (sx < right) return cols[i].k;
+    }
+    return cols[cols.length - 1].k;
+  }
+
+  function parse(pages, opt = {}) {
+    const sy = opt.schoolYear || '';
+    const meta = { title: '', docNo: '', issueDate: '' };
+    const tasks = []; const rawLines = [];
+    let titleMode = 0, stopped = false;
+    // Trạng thái
+    let cols = null, cur = null, section = '', dateCtx = '', block = null;
+
+    const pushTask = (t) => {
+      if (!t) return;
+      const nd = trimP((t.nd || '').replace(BULLET_RE, ''));
+      if (!nd || nd.length < 3) return;
+      if (isUpper(nd) && !t.tg && !t.ng) { section = sentence(nd); return; } // tiêu đề mục
+      tasks.push({ nd, tg: trimP(t.tg || ''), ng: trimP(t.ng || ''), dd: trimP(t.dd || ''), gc: trimP(t.gc || ''), page: t.page, auto: t.auto !== false, section: t.section || '' });
+    };
+
+    // ---------- Chế độ bảng ----------
+    const flushRow = () => {
+      if (!cur) return;
+      const r = {}; Object.keys(cur.c).forEach(k => r[k] = clean(cur.c[k]));
+      if (r.nd && isUpper(r.nd) && !r.tg && !r.ng) { section = sentence(r.nd); cur = null; return; }
+      if (r.tg) { r.tg = timeFrom(r.tg, sy) || normDates(r.tg, sy); dateCtx = r.tg; } else if (dateCtx) r.tg = dateCtx;
+      if (!r.dd && r.nd) r.dd = inlinePlace(r.nd);
+      pushTask({ ...r, page: cur.page, section });
+      cur = null;
+    };
+    const tableLine = (ln, page) => {
+      const cells = {};
+      ln.segs.forEach(s => { const k = colOf(s, cols); cells[k] = cells[k] ? cells[k] + ' ' + s.text : s.text; });
+      Object.keys(cells).forEach(k => cells[k] = clean(cells[k]));
+      const sttNew = cells.stt && /^(\d{1,3}|[IVX]{1,5}|[a-zđ])[.)]?$/iu.test(cells.stt);
+      const ndBullet = cells.nd && /^\s*[-–—•●+*]\s*/.test(cells.nd);
+      const hasStt = cols.some(c => c.k === 'stt');
+      const tgNew = !hasStt && cells.tg && (findDates(cells.tg, sy).length || WD_RE.test(cells.tg));
+      if (!cur || sttNew || ndBullet || tgNew) {
+        // ô thời gian gộp (merged) cho nhiều dòng gạch đầu dòng
+        const keepTg = ndBullet && !sttNew && !tgNew && cur && cur.c.tg && !cells.tg ? cur.c.tg : '';
+        flushRow();
+        cur = { c: {}, page };
+        if (keepTg) cur.c.tg = keepTg;
+      }
+      Object.keys(cells).forEach(k => { if (k === 'stt') return; cur.c[k] = cur.c[k] ? cur.c[k] + ' ' + cells[k] : cells[k]; });
+    };
+
+    // ---------- Chế độ văn bản ----------
+    const flushBlock = () => {
+      if (!block) return;
+      const b = block; block = null;
+      let s = clean(b.text);
+      if (!s) return;
+      if (ROMAN_RE.test(s) && !findDates(s, sy).length) { section = sentence(s.replace(/^\s*[IVX]{1,5}\s*[.)\-–]\s*/, '')); dateCtx = ''; return; }
+      const { res, rest } = extractLabels(s);
+      let nd = res.nd || rest;
+      let tg = res.tg ? (timeFrom(res.tg, sy) || normDates(res.tg, sy)) : '';
+      // Dòng bắt đầu bằng ngày: "Thứ Hai (15/9): Chào cờ..." -> tách phần ngày ra
+      const sd = nd.match(START_DATE_RE);
+      if (!res.tg && sd) {
+        const head = nd.slice(0, sd[0].length);
+        const after = nd.slice(sd[0].length).replace(/^[\s\/\d.\-()]*[):\-–]?\s*/, '');
+        tg = timeFrom(nd.slice(0, sd[0].length + 25), sy) || timeFrom(head, sy);
+        if (clean(after.replace(BULLET_RE, '')).length < 6) { dateCtx = tg; return; } // chỉ là tiêu đề ngày
+        nd = after;
+      }
+      const own = !!(tg || findDates(nd, sy).length || res.ng || res.dd);
+      if (!tg) tg = timeFrom(nd, sy);
+      if (!tg && dateCtx) {
+        tg = dateCtx;
+        const lt = nd.match(/^\s*((?:từ\s*)?\d{1,2}\s?(?:h|giờ|g|:)\s?\d{0,2}(?:\s*(?:[-–]|đến)\s*\d{1,2}\s?(?:h|giờ|g|:)\s?\d{0,2})?)\s*[:\-–,]\s*/iu);
+        if (lt) { tg = clean(lt[1]) + ', ' + tg; nd = nd.slice(lt[0].length); }
+        else { const tm = nd.match(TIME_RE); if (tm && !/trước|chậm nhất|hạn/iu.test(nd.slice(Math.max(0, tm.index - 12), tm.index + 1))) tg = clean(tm[2]) + ', ' + tg; }
+      }
+      if (!tg && !res.ng && !res.dd && !own) { b.weak = true; }
+      // Tiêu đề nhóm ngày kiểu "1. Tuần 1 (từ 05/9 đến 10/9):"
+      if (tg && /:\s*$/.test(s) && nd.length < 60 && !res.ng && !res.dd) { dateCtx = tg; return; }
+      const t = { nd, tg, ng: res.ng || inlinePerson(nd), dd: res.dd || inlinePlace(nd), gc: res.gc || '', page: b.page, section, auto: !b.weak };
+      if (b.weak) t.weak = true;
+      if (isUpper(nd) && !own) { section = sentence(nd.replace(BULLET_RE, '')); dateCtx = ''; return; }
+      weakOrPush(t);
+    };
+    const weak = [];
+    const weakOrPush = t => { if (t.weak) weak.push(t); else pushTask(t); };
+
+    let prevLn = null;
+    pages.forEach(pg => {
+      prevLn = null;
+      pg.lines.forEach((ln, li) => {
+        const text = lineText(ln);
+        if (!text) return;
+        rawLines.push(text);
+        if (stopped) return;
+        if (STOP_RE.test(text)) { stopped = true; return; }
+        // Tiêu đề & số văn bản
+        const no = text.match(/(?:^|\s)số\s*:\s*([\w\/\-.]+)/iu); if (no && !meta.docNo) meta.docNo = no[1];
+        if (ISSUE_RE.test(text) || /,\s*ngày\s*\d{1,2}\s*tháng\s*\d{1,2}\s*năm\s*\d{4}\s*$/iu.test(text)) {
+          const d = findDates(text, sy)[0]; if (d && !meta.issueDate) meta.issueDate = fmt(d);
+          return;
+        }
+        if (NOISE.some(re => re.test(text))) return;
+        const hd0 = detectHeader(ln);
+        if (hd0) { flushBlock(); flushRow(); cols = hd0; titleMode = 2; return; }
+        if (!meta.title && TITLE_RE.test(text) && isUpper(text)) { meta.title = text; titleMode = 1; return; }
+        if (titleMode === 1) {
+          const cx = (ln.segs[0].x + ln.segs[ln.segs.length - 1].x2) / 2;
+          if (isUpper(text) || /^\s*v\/v/iu.test(text) || (Math.abs(cx - 500) < 70 && (ln.segs[ln.segs.length - 1].x2 - ln.segs[0].x) < 560 && text.length < 110 && !BULLET_RE.test(text) && !/^\s*kính\s*gửi/iu.test(text))) { meta.title += ' ' + text.replace(/^\s*v\/v\s*:?\s*/iu, ''); return; }
+          titleMode = 2;
+        }
+        // Bảng
+        const hd = detectHeader(ln);
+        if (hd) { flushBlock(); flushRow(); cols = hd; return; }
+        if (cols && ln.segs.length >= 1) {
+          // Hết bảng khi gặp đoạn văn dài bắt đầu sát lề trái mà không có cột thời gian/người -> vẫn coi là bảng (bảng thường kéo dài tới cuối)
+          tableLine(ln, pg.page); return;
+        }
+        // Văn bản thường
+        const starts = BULLET_RE.test(text) || ROMAN_RE.test(text) || START_DATE_RE.test(text) || LABEL_RE_START(text);
+        const gapBreak = block && prevLn && (ln.y - prevLn.y) > 1.8 * Math.max(ln.h, prevLn.h) && !/^\s*(?:thời gian|địa điểm|thành phần|người thực hiện|phụ trách|chủ trì|ghi chú|lưu ý)\s*:/iu.test(text);
+        prevLn = ln;
+        if (!block || gapBreak || (starts && !/^\s*(?:thời gian|địa điểm|thành phần|người thực hiện|phụ trách|chủ trì|ghi chú|lưu ý)\s*:/iu.test(text))) {
+          flushBlock(); block = { text, page: pg.page };
+        } else {
+          block.text += ' ' + text;
+        }
+        // Câu kết thúc bằng ":" thường là tiêu đề -> tách ngay
+        if (/:\s*$/.test(text) && block && block.text.length < 90) flushBlock();
+      });
+      flushBlock(); // không nối khối sang trang mới để giữ số trang đúng
+    });
+    flushBlock(); flushRow();
+
+    meta.title = clean(meta.title);
+    // Không tìm được công việc nào có ngày/nhãn -> coi cả văn bản là 1 công việc
+    if (!tasks.length) {
+      const body = rawLines.join(' ');
+      const dl = body.match(/(?:trước|chậm nhất|hạn chót|hạn nộp|hoàn thành trước)\s*(?:ngày\s*)?[^.;]{0,40}/iu);
+      const tg = (dl && timeFrom(dl[0], sy)) || timeFrom(body.replace(/^[\s\S]*?(?:kính gửi[^.]*\.)?/iu, ''), sy) || '';
+      const title = meta.title ? sentence(meta.title) : (weak[0] ? weak[0].nd : '');
+      if (title) tasks.push({ nd: title, tg: tg === meta.issueDate ? '' : tg, ng: '', dd: inlinePlace(body), gc: '', page: 1, auto: true, whole: true });
+      // các mục yếu (không có ngày) vẫn đưa ra để người dùng chọn
+      weak.slice(0, 40).forEach(t => tasks.push({ ...t, auto: false }));
+    } else {
+      const own = tasks.filter(t => t.auto);
+      if (own.length === 1 && meta.title && !TITLE_RE.test(meta.title.replace(TITLE_RE, '').trim() || 'x') && clean(meta.title.replace(TITLE_RE, '')).length > 5) {
+        own[0].gc = trimP([own[0].gc, own[0].nd].filter(Boolean).join(' · ')); own[0].nd = sentence(meta.title);
+      }
+      weak.slice(0, 40).forEach(t => tasks.push({ ...t, auto: false }));
+    }
+    return { tasks, meta, rawText: rawLines.join('\n') };
+  }
+  function LABEL_RE_START(text) { return /^\s*(?:nội dung|công việc|nhiệm vụ)\s*:/iu.test(text); }
+
+  /* ---- Gom các mảnh chữ thành dòng/ô (dùng chung cho pdf.js và OCR) ---- */
+  // items: [{x,x2,y,h,text}] chuẩn hóa 0..1000
+  function buildLines(items) {
+    items = items.filter(it => it.text && it.text.trim()).sort((a, b) => a.y - b.y || a.x - b.x);
+    const lines = [];
+    items.forEach(it => {
+      const ln = lines.length ? lines[lines.length - 1] : null;
+      const tol = Math.max(2.5, 0.45 * Math.min(it.h, ln ? ln.h : it.h));
+      if (ln && Math.abs(it.y - ln.y) <= tol) { ln.items.push(it); ln.h = Math.max(ln.h, it.h); }
+      else lines.push({ y: it.y, h: it.h, items: [it] });
+    });
+    return lines.map(ln => {
+      const its = ln.items.sort((a, b) => a.x - b.x); const segs = [];
+      its.forEach(it => {
+        const s = segs[segs.length - 1];
+        const gap = s ? it.x - s.x2 : 1e9;
+        if (s && gap < ln.h * 0.6) {
+          const needSp = gap > ln.h * 0.12 && !/\s$/.test(s.text) && !/^\s/.test(it.text);
+          s.text += (needSp ? ' ' : '') + it.text; s.x2 = Math.max(s.x2, it.x2);
+        } else segs.push({ x: it.x, x2: it.x2, text: it.text });
+      });
+      segs.forEach(s => s.text = clean(s.text));
+      return { y: ln.y, h: ln.h, segs: segs.filter(s => s.text) };
+    }).filter(l => l.segs.length);
+  }
+  // Phát hiện chữ lỗi phông (TCVN3/VNI) trong lớp chữ PDF
+  function looksGarbled(s) {
+    const t = s.replace(/\s/g, ''); if (t.length < 40) return false;
+    const bad = (t.match(/[¸µ¶·¹¨»¼½¾ÆÇÌÎÏ×ØÞßãåæçèéêëìíîïñòóôõöøùúû®§¬ª«¤¥¦©]/g) || []).length;
+    const vn = (t.match(/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/gi) || []).length;
+    return bad / t.length > 0.03 && bad > vn;
+  }
+  return { parse, buildLines, looksGarbled, findDates, timeFrom, normDates, _fold: fold };
+})();
+
+/* ---------------- Nhập công việc từ PDF (pdf.js + Tesseract OCR) ---------------- */
+const PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const TESS_URL='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const _loaded={};
+function loadScript(src){
+  if(_loaded[src]) return _loaded[src];
+  return _loaded[src]=new Promise((ok,no)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>{ delete _loaded[src]; no(new Error('Không tải được thư viện: '+src)); }; document.head.appendChild(s); });
+}
+let pdfRows=[], pdfBusy=false, tessWorker=null;
+const pdfProg=(txt,pct)=>{ $('#pdfProg').style.display=''; $('#pdfProgTxt').textContent=txt; if(pct!=null) $('#pdfBar').style.width=Math.round(pct*100)+'%'; };
+function openPdfImport(){
+  if(historyMode){ toast('Hãy tắt chế độ tổng hợp để thêm mới','warn'); return; }
+  pdfRows=[]; $('#pdfResult').innerHTML=''; $('#pdfProg').style.display='none'; $('#pdfFile').value=''; $('#pdfAdd').disabled=true; $('#pdfCount').textContent='';
+  $('#pdfDrop').style.display=''; openOv('pdf');
+}
+async function getTess(){
+  if(tessWorker) return tessWorker;
+  await loadScript(TESS_URL);
+  tessWorker=await Tesseract.createWorker('vie',1,{ logger:m=>{ if(m.status==='recognizing text'&&pdfBusy) pdfProg(pdfProg.base+' · nhận dạng chữ '+Math.round(m.progress*100)+'%'); else if(m.status&&m.status.includes('loading')&&pdfBusy) pdfProg('Đang tải dữ liệu tiếng Việt cho OCR (chỉ lần đầu, vài MB)…'); } });
+  return tessWorker;
+}
+async function ocrPage(page,pageNo){
+  const vp=page.getViewport({scale:2.6});
+  const cv=document.createElement('canvas'); cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+  await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  const w=await getTess();
+  const {data}=await w.recognize(cv);
+  const items=[];
+  // Dùng tọa độ dòng do Tesseract nhận ra (ổn định hơn từng từ vì chữ có dấu làm lệch khung)
+  const lines=(data.lines&&data.lines.length)?data.lines:[{bbox:null,words:data.words||[]}];
+  lines.forEach(ln=>{ (ln.words||[]).forEach(wd=>{ if(!wd.text||!wd.text.trim()||wd.confidence<25) return;
+    const b=wd.bbox, lb=ln.bbox||b;
+    items.push({x:b.x0/cv.width*1000,x2:b.x1/cv.width*1000,y:(lb.y0+lb.y1)/2/cv.width*1000,h:Math.max(8,(lb.y1-lb.y0)/cv.width*1000),text:wd.text}); }); });
+  cv.width=cv.height=0;
+  return items;
+}
+async function readPdf(file){
+  pdfBusy=true;
+  await loadScript(PDFJS_URL); pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_WORKER;
+  pdfProg('Đang mở file…',0.02);
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  const n=Math.min(doc.numPages,40), pages=[]; let ocrN=0;
+  for(let i=1;i<=n;i++){
+    pdfProg.base='Trang '+i+'/'+n; pdfProg(pdfProg.base+'…',(i-1)/n);
+    const pg=await doc.getPage(i), vp=pg.getViewport({scale:1}), tc=await pg.getTextContent();
+    let items=tc.items.filter(it=>it.str&&it.str.trim()).map(it=>{ const x=it.transform[4], y=it.transform[5], h=Math.hypot(it.transform[2],it.transform[3])||it.height;
+      return {x:x/vp.width*1000,x2:(x+it.width)/vp.width*1000,y:(vp.height-y)/vp.height*1000,h:h/vp.width*1000,text:it.str}; });
+    const all=items.map(t=>t.text).join(' ');
+    if(all.replace(/\s/g,'').length<30||PdfParse.looksGarbled(all)){ items=await ocrPage(pg,i); ocrN++; }
+    pages.push({page:i,lines:PdfParse.buildLines(items)});
+  }
+  pdfBusy=false;
+  return {pages,ocrN,total:doc.numPages,read:n};
+}
+const _nk=s=>PdfParse._fold(s||'').replace(/[^a-z0-9]+/g,' ').trim();
+function isDup(r){ const a=_nk(r.nd); if(a.length<6) return false;
+  return yd(viewYear).cv.some(x=>{ const b=_nk(x.nd); return b===a||(b.length>12&&a.length>12&&(b.includes(a)||a.includes(b))); }); }
+async function handlePdf(file){
+  if(!file) return;
+  if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){ toast('Vui lòng chọn file PDF','error'); return; }
+  if(pdfBusy) return;
+  $('#pdfResult').innerHTML=''; $('#pdfAdd').disabled=true;
+  try{
+    const {pages,ocrN,total,read}=await readPdf(file);
+    const out=PdfParse.parse(pages,{schoolYear:viewYear});
+    pdfRows=out.tasks.map(t=>({...t,dup:isDup(t),on:t.auto&&!isDup(t)}));
+    $('#pdfProg').style.display='none';
+    renderPdfPreview(out,{ocrN,total,read,name:file.name});
+  }catch(err){
+    pdfBusy=false; console.error(err);
+    $('#pdfProg').style.display='none';
+    $('#pdfResult').innerHTML='<div class="empty"><h4>Không đọc được file này</h4><p>'+esc(err.message||String(err))+'<br>Kiểm tra kết nối mạng (cần tải thư viện đọc PDF lần đầu) rồi thử lại.</p></div>';
+  }
+}
+function renderPdfPreview(out,info){
+  const meta=out.meta;
+  const pills=[`<span class="pill">${esc(info.name)}</span>`];
+  if(meta.docNo) pills.push(`<span class="pill">Số: ${esc(meta.docNo)}</span>`);
+  if(meta.issueDate) pills.push(`<span class="pill">Ban hành: ${esc(meta.issueDate)}</span>`);
+  if(info.ocrN) pills.push(`<span class="pill warn">${info.ocrN} trang nhận dạng bằng OCR – hãy kiểm tra kỹ dấu tiếng Việt</span>`);
+  if(info.total>info.read) pills.push(`<span class="pill warn">Chỉ đọc ${info.read}/${info.total} trang đầu</span>`);
+  const raw=`<details class="pdf-raw"><summary>Xem văn bản đọc được từ file (để đối chiếu)</summary><pre>${esc(out.rawText.slice(0,6000))}</pre></details>`;
+  if(!pdfRows.length){
+    $('#pdfResult').innerHTML=`<div class="pdf-meta">${pills.join('')}</div><div class="empty"><h4>Không tách được công việc nào</h4><p>File có thể trống hoặc chất lượng ảnh quá thấp. Bạn có thể thêm thủ công bằng nút “Thêm công việc”.</p></div>`+raw;
+    $('#pdfCount').textContent=''; return;
+  }
+  $('#pdfDrop').style.display='none';
+  const hint=`<div class="pdf-meta" style="margin-top:4px">Đã tách <b>${pdfRows.length}</b> mục. Mục có dấu tick sẽ được thêm; sửa trực tiếp ô nào chưa đúng. Tiến độ mặc định: “Chưa hoàn thành”.</div>`;
+  const rows=pdfRows.map((r,i)=>`<tr data-i="${i}" class="${r.on?'':'off'}">
+    <td class="ck"><input type="checkbox" data-pck="${i}" ${r.on?'checked':''} aria-label="Chọn mục ${i+1}"></td>
+    <td><textarea data-pf="nd" data-i="${i}">${esc(r.nd)}</textarea>${r.dup?'<span class="tag dup">Có vẻ đã tồn tại</span> ':''}${!r.auto&&!r.dup?'<span class="tag weak">Chưa chắc là công việc</span> ':''}<span class="tag pg">Trang ${r.page||1}${r.section?' · '+esc(r.section):''}</span></td>
+    <td><input type="text" data-pf="tg" data-i="${i}" value="${esc(r.tg)}"></td>
+    <td><input type="text" data-pf="ng" data-i="${i}" value="${esc(r.ng)}"></td>
+    <td><input type="text" data-pf="dd" data-i="${i}" value="${esc(r.dd)}"></td>
+    <td><input type="text" data-pf="gc" data-i="${i}" value="${esc(r.gc)}"></td></tr>`).join('');
+  $('#pdfResult').innerHTML=`<div class="pdf-meta">${pills.join('')}</div>${hint}<div class="pdf-scroll"><table class="pdf-tbl"><colgroup><col style="width:34px"><col style="width:34%"><col style="width:17%"><col style="width:17%"><col style="width:15%"><col></colgroup>
+    <thead><tr><th><input type="checkbox" id="pdfAll" ${pdfRows.every(r=>r.on)?'checked':''} aria-label="Chọn tất cả"></th><th>Nội dung công việc</th><th>Thời gian</th><th>Người thực hiện</th><th>Địa điểm</th><th>Ghi chú</th></tr></thead><tbody>${rows}</tbody></table></div>`+raw;
+  updPdfCount();
+}
+function updPdfCount(){ const n=pdfRows.filter(r=>r.on).length; $('#pdfCount').textContent='Đã chọn '+n+' / '+pdfRows.length+' mục'; $('#pdfAdd').disabled=!n; $('#pdfAdd').textContent=n?'Thêm '+n+' công việc':'Thêm vào danh sách'; }
+document.addEventListener('input',e=>{ const el=e.target; if(el.dataset&&el.dataset.pf){ pdfRows[+el.dataset.i][el.dataset.pf]=el.value; } });
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.id==='pdfFile'){ handlePdf(el.files[0]); return; }
+  if(el.dataset&&el.dataset.pck!=null){ const r=pdfRows[+el.dataset.pck]; r.on=el.checked; el.closest('tr').classList.toggle('off',!r.on); updPdfCount(); }
+  if(el.id==='pdfAll'){ pdfRows.forEach(r=>r.on=el.checked); document.querySelectorAll('.pdf-tbl tbody tr').forEach(tr=>{ tr.classList.toggle('off',!el.checked); tr.querySelector('[data-pck]').checked=el.checked; }); updPdfCount(); }
+});
+(function(){ const d=$('#pdfDrop'); if(!d) return;
+  ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{ e.preventDefault(); d.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{ e.preventDefault(); d.classList.remove('over'); }));
+  d.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; handlePdf(f); });
+})();
+$('#pdfAdd').onclick=async()=>{
+  const sel=pdfRows.filter(r=>r.on&&String(r.nd||'').trim());
+  if(!sel.length) return;
+  const arr=yd(viewYear).cv;
+  sel.forEach(r=>arr.push({id:nextId('cv',viewYear),nd:r.nd.trim(),tg:(r.tg||'').trim(),td:'Chưa hoàn thành',ng:(r.ng||'').trim(),dd:(r.dd||'').trim(),gc:(r.gc||'').trim()}));
+  closeOv('pdf'); renderAll();
+  await saveTab(viewYear,'cv');
+  toast('Đã thêm '+sel.length+' công việc từ PDF','success');
+};
 
 boot();
 </script>
