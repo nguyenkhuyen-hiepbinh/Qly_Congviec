@@ -1400,10 +1400,10 @@ const PdfParse = (() => {
   /* ---- Nhãn "Tên trường:" trong văn bản ---- */
   const LABELS = [
     ['tg', 'thời gian|thời hạn|hạn chót|hạn nộp|hạn hoàn thành|ngày thực hiện|thời điểm|ngày tổ chức'],
-    ['ng', 'người thực hiện|người phụ trách|người chịu trách nhiệm|phụ trách|chủ trì|thành phần(?: tham dự| tham gia)?|bộ phận thực hiện|đơn vị thực hiện|người được giao|giao cho|phân công|thực hiện|lực lượng'],
+    ['ng', 'người thực hiện|người phụ trách|người chịu trách nhiệm|phụ trách|chủ trì|thành phần(?: tham dự| tham gia)?|bộ phận thực hiện|đơn vị thực hiện|người được giao|giao cho|phân công|lực lượng|(?<!nội dung )thực hiện'],
     ['dd', 'địa điểm|nơi tổ chức|tại'],
     ['gc', 'ghi chú|lưu ý'],
-    ['nd', 'nội dung(?: công việc)?|công việc|nhiệm vụ']
+    ['nd', 'nội dung(?:\\s*(?:công việc|thực hiện|hoạt động|chính|chương trình|họp|tập huấn))?|công việc|nhiệm vụ|hoạt động']
   ];
   const LABEL_RE = new RegExp('(^|[^\\p{L}])(' + LABELS.map(l => l[1]).join('|') + ')\\s*:', 'giu');
   const labelKey = w => { const f = clean(w).toLowerCase(); for (const [k, re] of LABELS) if (new RegExp('^(?:' + re + ')$', 'iu').test(f)) return k; return null; };
@@ -1469,14 +1469,48 @@ const PdfParse = (() => {
     ['tg', /thoi gian|thoi han|^ngay|^thu$|^thu\s*\/|ngay thang|^tuan$|buoi/],
     ['nd', /noi dung|cong viec|nhiem vu|hoat dong/]
   ];
-  function headKey(t) { const f = fold(t); for (const [k, re] of HEAD) if (re.test(f)) return k; return null; }
+  function headKey(t) {
+    const f = fold(t);
+    if (/^(stt|tt|so tt|thu tu)$/.test(f)) return 'stt';
+    if (/ghi chu/.test(f)) return 'gc';
+    if (/dia diem|noi to chuc/.test(f)) return 'dd';
+    if (/nguoi|phu trach|chu tri|bo phan|thanh phan|don vi|luc luong|phan cong|giao cho|^thuc hien$|^can bo|^giao vien/.test(f)) return 'ng';
+    if (/thoi gian|thoi han|^ngay|^thu$|^thu\s*\/|ngay thang|^tuan$|buoi/.test(f)) return 'tg';
+    if (/noi dung|cong viec|nhiem vu|hoat dong|thuc hien|chu de|chuong trinh/.test(f)) return 'nd';
+    return null;
+  }
   function detectHeader(ln) {
     const cols = []; const used = new Set();
     ln.segs.forEach(s => { const k = headKey(s.text); if (k && !used.has(k)) { used.add(k); cols.push({ k, c: (s.x + s.x2) / 2, x: s.x }); } });
     if (cols.length >= 3 && used.has('nd')) return cols.sort((a, b) => a.c - b.c);
     return null;
   }
+  // Ước lượng mép trái mỗi cột từ vị trí bắt đầu chữ của các dòng dưới tiêu đề
+  function setEdges(cols, lines) {
+    const starts = [];
+    for (const l of lines) { if (detectHeader(l)) break; l.segs.forEach(sg => starts.push(sg.x)); }
+    starts.sort((a, b) => a - b);
+    const groups = [];
+    starts.forEach(x => { const g = groups[groups.length - 1]; if (g && x - g.last <= 10) { g.n++; g.sum += x; g.last = x; } else groups.push({ n: 1, sum: x, last: x }); });
+    groups.forEach(g => g.m = g.sum / g.n);
+    let prev = -1e9;
+    cols.forEach((c, i) => {
+      const nextC = i + 1 < cols.length ? cols[i + 1].c : 1e9;
+      const cand = groups.filter(g => g.m <= c.c + 5 && g.m > prev + 10 && g.m < nextC);
+      let best = null;
+      cand.forEach(g => { if (!best || g.n > best.n || (g.n === best.n && g.m < best.m)) best = g; });
+      c.edge = best && (best.n >= 2 || lines.length < 4) ? best.m : c.x;
+      if (c.edge <= prev + 10) c.edge = Math.max(c.x, prev + 11);
+      prev = c.edge;
+    });
+    return cols;
+  }
   function colOf(seg, cols) {
+    if (cols[0].edge != null) {
+      let k = cols[0].k;
+      for (let i = 0; i < cols.length; i++) if (cols[i].edge <= seg.x + 8) k = cols[i].k;
+      return k;
+    }
     // cột có vùng chứa điểm bắt đầu của ô (ranh giới = điểm giữa 2 tâm tiêu đề)
     const sx = seg.x + Math.min(15, (seg.x2 - seg.x) / 2);
     for (let i = 0; i < cols.length; i++) {
@@ -1494,8 +1528,14 @@ const PdfParse = (() => {
     // Trạng thái
     let cols = null, cur = null, section = '', dateCtx = '', block = null;
 
+    const ACT_RE = /^(họp|hội họp|tập huấn|bồi dưỡng|sinh hoạt|kiểm tra|tổ chức|dự giờ|thao giảng|báo cáo|nộp|tổng vệ sinh|chào cờ|hội nghị|hội thảo|hội thi|triển khai|tuyên truyền|phát động|thi |khai giảng|tổng kết|sơ kết|duyệt|xây dựng|rà soát|đánh giá|tham dự|tham gia|lễ |ngày hội|diễn đàn|chuyên đề)/iu;
     const pushTask = (t) => {
       if (!t) return;
+      if (t.ng && ACT_RE.test(t.ng)) {            // nội dung bị đặt nhầm vào cột người thực hiện
+        const semi = t.ng.split(/\s*;\s*/);
+        const act = semi.filter(x => ACT_RE.test(x)).join('; '), who = semi.filter(x => !ACT_RE.test(x)).join('; ');
+        t.nd = t.nd && !/^(nội dung|công việc|nhiệm vụ)$/iu.test(trimP(t.nd)) ? t.nd + '; ' + act : act; t.ng = who;
+      }
       const nd = trimP((t.nd || '').replace(BULLET_RE, ''));
       if (!nd || nd.length < 3) return;
       if (isUpper(nd) && !t.tg && !t.ng) { section = sentence(nd); return; } // tiêu đề mục
@@ -1585,7 +1625,7 @@ const PdfParse = (() => {
         }
         if (NOISE.some(re => re.test(text))) return;
         const hd0 = detectHeader(ln);
-        if (hd0) { flushBlock(); flushRow(); cols = hd0; titleMode = 2; return; }
+        if (hd0) { flushBlock(); flushRow(); cols = setEdges(hd0, pg.lines.slice(li + 1)); titleMode = 2; return; }
         if (!meta.title && TITLE_RE.test(text) && isUpper(text)) { meta.title = text; titleMode = 1; return; }
         if (titleMode === 1) {
           const cx = (ln.segs[0].x + ln.segs[ln.segs.length - 1].x2) / 2;
@@ -1593,8 +1633,6 @@ const PdfParse = (() => {
           titleMode = 2;
         }
         // Bảng
-        const hd = detectHeader(ln);
-        if (hd) { flushBlock(); flushRow(); cols = hd; return; }
         if (cols && ln.segs.length >= 1) {
           // Hết bảng khi gặp đoạn văn dài bắt đầu sát lề trái mà không có cột thời gian/người -> vẫn coi là bảng (bảng thường kéo dài tới cuối)
           tableLine(ln, pg.page); return;
@@ -1670,6 +1708,7 @@ const PdfParse = (() => {
   }
   return { parse, buildLines, looksGarbled, findDates, timeFrom, normDates, _fold: fold };
 })();
+
 
 /* ---------------- Nhập công việc từ PDF (pdf.js + Tesseract OCR) ---------------- */
 const PDFJS_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
