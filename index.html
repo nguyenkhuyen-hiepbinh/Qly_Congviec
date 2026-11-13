@@ -398,8 +398,9 @@ b,strong{font-weight:700}
 .brand{padding:22px 20px 16px;gap:12px}
 .logo{width:48px;height:48px;border-radius:50%;background:#fff;padding:2px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .logo img{width:100%;height:100%;border-radius:50%;display:block}
-.brand h1{font-size:16px;font-weight:800;letter-spacing:.2px;line-height:1.25}
-.brand p{font-size:12.5px;color:#c4d6f5;font-weight:500;margin-top:2px}
+.brand{align-items:center}
+.brand h1{font-size:16px;font-weight:800;letter-spacing:.3px;line-height:1.25;text-align:left}
+.brand p{font-size:11.5px;color:#c4d6f5;font-weight:500;margin-top:3px;white-space:nowrap}
 .nav{padding:6px 14px;gap:4px}
 .nav-label{font-size:12px;color:#a9c0e6;font-weight:700;letter-spacing:1px;padding:16px 10px 6px}
 .nav-btn{font-size:15px;font-weight:600;color:#eaf1fd;padding:11px 14px;border-radius:12px}
@@ -437,17 +438,17 @@ body.on-dash .page-title{display:none}
 .btn-primary{background:var(--brand-2);box-shadow:0 4px 12px rgba(21,101,216,.3)}
 
 /* Hero */
-.hero{position:relative;overflow:hidden;border-radius:20px;min-height:178px;display:flex;align-items:center;gap:28px;padding:22px 34px;margin-bottom:18px;color:#fff;
+.hero{position:relative;overflow:hidden;border-radius:20px;min-height:178px;display:flex;align-items:center;gap:28px;padding:22px 40px;margin-bottom:18px;color:#fff;
   background:linear-gradient(105deg,#0a3a8c 0%,#1257c4 45%,#2a83f0 100%);box-shadow:0 10px 30px rgba(11,61,145,.25)}
 .hero-img{position:absolute;right:0;top:0;bottom:0;width:58%;background-size:cover;background-position:center;
   -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 32%);mask-image:linear-gradient(90deg,transparent 0%,#000 32%)}
 .hero::after{content:"";position:absolute;left:-5%;right:-5%;bottom:-38px;height:70px;border-radius:50%;border-top:3px solid rgba(255,255,255,.55);pointer-events:none}
 .hero-logo{position:relative;z-index:1;width:142px;height:142px;flex-shrink:0;border-radius:50%;background:#fff;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.28)}
 .hero-logo img{width:100%;height:100%;border-radius:50%;display:block}
-.hero-txt{position:relative;z-index:1;padding-left:28px;border-left:2px solid rgba(255,255,255,.45)}
-.hero-txt .k{font-size:22px;font-weight:700;letter-spacing:.5px;opacity:.95}
-.hero-txt h2{font-size:44px;font-weight:800;letter-spacing:.5px;line-height:1.08;margin:2px 0 12px;text-shadow:0 2px 10px rgba(0,0,0,.25)}
-.hero-txt .pill{display:inline-flex;align-items:center;gap:10px;font-size:17px;font-weight:800;letter-spacing:.4px;padding:8px 18px;border-radius:30px;border:2px solid rgba(255,255,255,.8);background:rgba(255,255,255,.1)}
+.hero-txt{position:relative;z-index:1;min-width:400px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 30px 18px;border-radius:18px;border:2px solid rgba(255,255,255,.75);background:rgba(8,40,110,.38);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.hero-txt .k{font-size:20px;font-weight:700;letter-spacing:1px}
+.hero-txt h2{font-size:40px;font-weight:800;letter-spacing:.5px;line-height:1.1;margin:2px 0 12px;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+.hero-txt .pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;letter-spacing:.4px;padding:7px 18px;border-radius:30px;background:#fff;color:#0b3d91}
 .hero-txt .pill svg{width:20px;height:20px}
 
 /* KPI */
@@ -587,20 +588,22 @@ body.on-dash .page-title{display:none}
   .kp .ic{width:48px;height:48px}.kp .ic svg{width:24px;height:24px}
   .kp .n{font-size:28px}
 }
-@media (max-width:1280px){ .dgrid{grid-template-columns:minmax(0,1fr) 360px} .kpi4{grid-template-columns:repeat(2,1fr)} .hero-txt h2{font-size:38px} }
+@media (max-width:1280px){ .dgrid{grid-template-columns:minmax(0,1fr) 360px} .kpi4{grid-template-columns:repeat(2,1fr)} .hero-txt h2{font-size:34px} }
 @media (max-width:1060px){ .dgrid{grid-template-columns:1fr} }
 @media (max-width:860px){
   .topbar{padding:10px 14px}
   .gsearch{order:10;flex-basis:100%;max-width:none;height:42px}
   body.on-dash .topbar .spacer{display:none}
   .hero{padding:18px;gap:14px;min-height:0}
+  .hero-txt{padding:12px 16px 14px}
   .hero-img{width:100%;opacity:.14;-webkit-mask-image:none;mask-image:none}
-  .hero-logo{width:74px;height:74px;padding:3px}
-  .hero-txt{padding-left:14px}
-  .hero-txt .k{font-size:13px}
-  .hero-txt h2{font-size:25px;margin:0 0 8px}
-  .hero-txt .pill{font-size:12px;padding:5px 11px;gap:6px}
-  .hero-txt .pill svg{width:15px;height:15px}
+  .hero-txt .k{font-size:12px}
+  .hero{gap:10px;padding:16px 14px}
+  .hero-txt{flex:1;min-width:0;max-width:290px}
+  .hero-txt h2{font-size:20px;margin:0 0 8px;white-space:nowrap}
+  .hero-txt .pill{font-size:11px;padding:4px 10px;gap:5px}
+  .hero-txt .pill svg{display:none}
+  .hero-txt .pill{white-space:nowrap;font-size:10.5px;letter-spacing:0}
   .kpi4{gap:10px}
   .kp{padding:14px;gap:10px;flex-wrap:wrap}
   .kp .ic{width:44px;height:44px}.kp .ic svg{width:22px;height:22px}
@@ -1416,7 +1419,6 @@ function renderDash(){
   return `${historyBanner()}
   <section class="hero">
     <div class="hero-img" style="background-image:url('${BANNER_SRC}')"></div>
-    <div class="hero-logo"><img src="${LOGO_SRC}" alt="Logo Trường THCS-THPT Nguyễn Khuyến"></div>
     <div class="hero-txt"><div class="k">TRƯỜNG THCS - THPT</div><h2>NGUYỄN KHUYẾN</h2><span class="pill">${J.cal}HỆ THỐNG LỊCH CÔNG TÁC</span></div>
   </section>
   <div class="kpi4">
