@@ -625,6 +625,13 @@ body.on-dash .page-title{display:none}
 }
 @media (min-width:1441px){ .wd .dhead{display:contents} }
 
+
+/* Sidebar: logo giữa, tên trường trong khung đỏ nền trắng */
+.brand{flex-direction:column;align-items:center;gap:12px;padding:22px 16px 16px;text-align:center}
+.brand .logo{width:72px;height:72px}
+.brand-box{width:100%;background:#fff;border:2.5px solid #d3202f;border-radius:14px;padding:10px 8px 9px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.brand-box h1{font-size:17px;font-weight:800;color:#d3202f;text-align:center;line-height:1.3;letter-spacing:.4px;margin:0}
+.brand-box p{font-size:12px;font-weight:700;color:#d3202f;text-align:center;margin:5px 0 0;white-space:normal;line-height:1.3;border-top:1.5px solid #f3c4c8;padding-top:5px}
 </style>
 </head>
 <body>
@@ -633,7 +640,7 @@ body.on-dash .page-title{display:none}
   <aside class="sidebar">
     <div class="brand">
       <div class="logo"><img id="sideLogo" alt="Logo trường"></div>
-      <div><h1>THCS - THPT<br>NGUYỄN KHUYẾN</h1><p>Quản lý công việc nhà trường</p></div>
+      <div class="brand-box"><h1>THCS - THPT<br>NGUYỄN KHUYẾN</h1><p>Quản lý công việc nhà trường</p></div>
     </div>
     <nav class="nav" id="sideNav"></nav>
     <div class="side-foot">
